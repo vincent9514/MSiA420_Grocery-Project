@@ -1,0 +1,108 @@
+---
+title: "Grace_EDA"
+output: html_document
+---
+
+#Read data
+```{r}
+library(readr)
+library(ggplot2)
+trainset<-read_csv("/Users/yuecui/Desktop/Predictive II/Grocery Project/train_set.csv")[,-1]
+testset<-read_csv("/Users/yuecui/Desktop/Predictive II/Grocery Project/test_set.csv")[,-1]
+final<-rbind(trainset,testset)
+overall<-final
+write.csv(final,"final.csv")
+
+library(dplyr)
+```
+
+
+
+###Merge
+
+```{r}
+oil<- read.csv("oil.csv", header = T, stringsAsFactors = F)
+
+
+oil$date<-as.Date(oil$date)
+overall$date<-as.Date(overall$date)
+
+
+#merged oil
+mergeddata1<-merge(overall,oil,by.x = "date", by.y = "date",all.x = TRUE)
+
+#merged holidays
+holidays<-read.csv("holidays_events.csv",header = T, stringsAsFactors = F)
+holidays$date<-as.Date(holidays$date)
+mergeddata2<-merge(mergeddata1,holidays,by.x = "date", by.y = "date",all.x = TRUE)
+
+
+#merged items
+items<-read.csv("items.csv",header = T,stringsAsFactors = F)
+head(items)
+mergeddata3<-merge(mergeddata2,items,by.x = "item_nbr", by.y = "item_nbr",all.x = TRUE)
+
+#merged stores
+stores<-read.csv("stores.csv",header = T,stringsAsFactors = F)
+head(stores)
+mergeddata4<-merge(mergeddata3,stores,by.x = "store_nbr", by.y = "store_nbr",all.x = TRUE)
+
+#merged transactions
+transactions<-read.csv("transactions.csv",header = T,stringsAsFactors = F)
+transactions$store_nbr<-as.numeric(transactions$store_nbr)
+mergeddata5<- left_join(mergeddata4,transactions,by = "store_nbr")
+data_final<-mergeddata5
+```
+
+
+```{r}
+merged<-read_csv("merged.csv")
+
+temp2<-merged[merged$unit_sales>=0,]
+merged<-temp2
+```
+
+
+
+```{r}
+unique(merged[,c('store_nbr','item_nbr',"date")])
+length(unique(merged$id))
+dup<-merged[duplicated(merged[,6]),]
+
+
+temp<-merged[!(merged$X1 %in% dup$X1),]  ### All unique "id"
+```
+
+
+```{r}
+table(temp$onpromotion)
+table(temp$onpromotion)/nrow(temp)
+sum(is.na(temp$onpromotion))/nrow(temp)
+```
+
+
+###Unit_sales
+```{r}
+summary(temp$unit_sales)
+sum(is.na(temp$unit_sales))
+
+
+```
+
+```{r}
+outlier_values <- boxplot.stats(temp$unit_sales)$out  # outlier values.
+length(outlier_values)
+boxplot(temp$unit_sales, main="Unit_sale", boxwex=0.1)
+mtext(paste("Outliers: ", paste(outlier_values, collapse=", ")), cex=0.6)
+
+temp$logsale<-log(temp$unit_sales+0.01)
+
+
+summary(temp$logsale)
+hist(temp$logsale)
+outlier_values <- boxplot.stats(temp$logsale)$out  # outlier values.
+boxplot(temp$logsale, main="Unit_sale", boxwex=0.1)
+mtext(paste("Outliers: ", paste(outlier_values, collapse=", ")), cex=0.6)
+
+```
+
